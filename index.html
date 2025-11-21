@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EuroEpiTracker - Vanilla JS</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Calcite Design System -->
+    <script type="module" src="https://js.arcgis.com/calcite-components/3.3.0/calcite.esm.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/3.3.0/calcite.css" />
+
+    <!-- OpenLayers -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.4.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v10.4.0/dist/ol.js"></script>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <style>
+        /* Custom Dark Theme overrides */
+        body {
+            background-color: #151515;
+            color: white;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Map Popup Styles */
+        .ol-popup {
+            position: absolute;
+            background-color: rgba(20, 20, 20, 0.95);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            bottom: 12px;
+            left: -50px;
+            min-width: 180px;
+            pointer-events: none;
+            z-index: 1000;
+            transition: opacity 0.2s;
+        }
+
+        .ol-popup:after,
+        .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .ol-popup:after {
+            border-top-color: rgba(20, 20, 20, 0.95);
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+
+        .ol-popup:before {
+            border-top-color: #444;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+
+        /* Map Filter for Dark Mode */
+        .map-dark-filter {
+            filter: grayscale(100%) invert(90%) contrast(110%);
+        }
+
+        /* Calcite Overrides for Dark Mode feeling */
+        calcite-shell {
+            --calcite-ui-foreground-1: #1a1a1a;
+            --calcite-ui-text-1: #ffffff;
+        }
+
+        /* Maximize/Minimize Styles */
+        .widget-card {
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .widget-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 100 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            padding: 1rem !important;
+        }
+
+        /* Custom Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "ol/": "https://aistudiocdn.com/ol@^10.7.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
+  }
+}
+</script>
+</head>
+
+<body class="calcite-mode-dark">
+    <calcite-shell content-behind>
+        <!-- Header -->
+        <calcite-navigation slot="header">
+            <calcite-navigation-logo slot="logo" icon="graph-time-series" heading="EuroEpiTracker"
+                description="Vanilla JS Surveillance System"></calcite-navigation-logo>
+
+            <div slot="content-end" class="flex items-center gap-4 pr-4">
+                <!-- KPI Widgets -->
+                <div class="hidden md:flex items-center gap-6 mr-4 border-r border-gray-700 pr-6">
+                    <div class="text-right">
+                        <p class="text-xs text-gray-400 uppercase font-semibold">Active Cases</p>
+                        <p id="kpi-total" class="text-xl font-mono font-bold text-blue-400">0</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-400 uppercase font-semibold">Critical Events</p>
+                        <p id="kpi-critical" class="text-xl font-mono font-bold text-red-500">0</p>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+
+                <calcite-dropdown id="disease-filter" type="click" width="m">
+                    <calcite-button slot="trigger" icon-end="caret-down" appearance="outline">Select
+                        Diseases</calcite-button>
+                    <calcite-dropdown-group id="disease-filter-group" selection-mode="single">
+                        <!-- Options populated by JS -->
+                    </calcite-dropdown-group>
+                </calcite-dropdown>
+
+
+                <calcite-button id="refresh-btn" icon-start="refresh" appearance="outline">Refresh Data</calcite-button>
+            </div>
+        </calcite-navigation>
+
+        <!-- Main Content -->
+        <div class="flex flex-col h-full w-full bg-[#101010]">
+
+            <!-- Top Half: Map (60%) -->
+            <div id="map-container"
+                class="widget-card relative w-full h-[55vh] border-b border-gray-800 group bg-[#151515]">
+                <div class="absolute top-2 left-2 z-20 flex gap-2 pointer-events-none">
+                    <!-- Title could go here -->
+                </div>
+
+                <!-- Fullscreen Button -->
+                <div class="absolute top-2 right-2 z-20">
+                    <calcite-action id="map-fullscreen-btn" icon="maximize" text="Maximize" scale="s"></calcite-action>
+                </div>
+
+                <div id="map" class="w-full h-full"></div>
+
+                <!-- Map Toolbar -->
+                <div
+                    class="absolute top-12 right-4 flex flex-col gap-2 z-10 bg-gray-900/80 p-2 rounded border border-gray-700 backdrop-blur">
+                    <calcite-button id="buffer-btn" icon-start="pin-plus" kind="brand" appearance="outline" scale="s"
+                        title="Buffer Point">Buffer Point</calcite-button>
+                    <calcite-button id="draw-poly-btn" icon-start="polygon" kind="brand" appearance="outline" scale="s"
+                        title="Select Area">Select Area</calcite-button>
+                    <calcite-button id="clear-poly-btn" icon-start="x" kind="danger" appearance="outline" scale="s"
+                        disabled title="Clear Selection">Clear</calcite-button>
+                </div>
+
+                <!-- Buffer Input Modal (Custom) -->
+                <div id="buffer-modal"
+                    class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+                    <div class="bg-[#1e1e1e] border border-gray-700 rounded-lg shadow-2xl p-6 w-80">
+                        <h3 class="text-white font-bold text-lg mb-2">Define Buffer</h3>
+                        <p class="text-gray-400 text-xs mb-4">Enter radius in kilometers around the selected point.</p>
+
+                        <label class="block mb-4">
+                            <span class="text-gray-300 text-sm">Radius (km)</span>
+                            <input type="number" id="buffer-radius-input" value="300" min="10" max="5000"
+                                class="w-full bg-[#151515] border border-gray-600 text-white rounded p-2 mt-1 focus:border-blue-500 outline-none">
+                        </label>
+
+                        <div class="flex justify-end gap-2">
+                            <calcite-button id="buffer-cancel-btn" appearance="outline" kind="neutral"
+                                scale="s">Cancel</calcite-button>
+                            <calcite-button id="buffer-confirm-btn" scale="s">Apply Filter</calcite-button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Popup Element -->
+                <div id="popup" class="ol-popup hidden">
+                    <div id="popup-content"></div>
+                </div>
+
+                <!-- Legend -->
+                <div
+                    class="absolute bottom-4 left-4 bg-black/80 backdrop-blur border border-gray-700 p-3 rounded text-xs text-white z-10 pointer-events-none">
+                    <h4 class="font-bold mb-2 text-gray-400 uppercase tracking-wider">Severity</h4>
+                    <div id="legend-items" class="flex flex-col gap-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Half: Charts (40%) -->
+            <div class="h-[45vh] w-full p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#151515]">
+
+                <div id="bar-container"
+                    class="widget-card bg-[#1e1e1e] rounded border border-gray-800 p-2 flex flex-col relative">
+                    <div class="flex justify-between items-center px-2 py-1">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Distribution by Country</h3>
+                        <calcite-action id="bar-fullscreen-btn" icon="maximize" text="Maximize"
+                            scale="s"></calcite-action>
+                    </div>
+                    <div id="chart-bar" class="flex-1 w-full"></div>
+                </div>
+
+                <div id="pie-container"
+                    class="widget-card bg-[#1e1e1e] rounded border border-gray-800 p-2 flex flex-col relative">
+                    <div class="flex justify-between items-center px-2 py-1">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Severity Analysis</h3>
+                        <calcite-action id="pie-fullscreen-btn" icon="maximize" text="Maximize"
+                            scale="s"></calcite-action>
+                    </div>
+                    <div id="chart-pie" class="flex-1 w-full"></div>
+                </div>
+
+                <div id="line-container"
+                    class="widget-card bg-[#1e1e1e] rounded border border-gray-800 p-2 flex flex-col relative">
+                    <div class="flex justify-between items-center px-2 py-1">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Outbreak Timeline</h3>
+                        <calcite-action id="line-fullscreen-btn" icon="maximize" text="Maximize"
+                            scale="s"></calcite-action>
+                    </div>
+                    <div id="chart-line" class="flex-1 w-full"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </calcite-shell>
+
+    <script type="module" src="./index.js"></script>
+</body>
+
+</html>

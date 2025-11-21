@@ -1,0 +1,5 @@
+{
+    "name": "EuroEpiTracker",
+    "description": "An interactive epidemiological dashboard visualizing disease outbreaks across Europe using Vanilla JS, OpenLayers, and Plotly.js.",
+    "requestFramePermissions": []
+}
