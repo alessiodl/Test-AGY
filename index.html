@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EuroEpiTracker - Vanilla JS</title>
+    <title>EuroEpiTracker</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,112 +20,7 @@
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
-    <style>
-        /* Custom Dark Theme overrides */
-        body {
-            background-color: #151515;
-            color: white;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        /* Map Popup Styles */
-        .ol-popup {
-            position: absolute;
-            background-color: rgba(20, 20, 20, 0.95);
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #444;
-            bottom: 12px;
-            left: -50px;
-            min-width: 180px;
-            pointer-events: none;
-            z-index: 1000;
-            transition: opacity 0.2s;
-        }
-
-        .ol-popup:after,
-        .ol-popup:before {
-            top: 100%;
-            border: solid transparent;
-            content: " ";
-            height: 0;
-            width: 0;
-            position: absolute;
-            pointer-events: none;
-        }
-
-        .ol-popup:after {
-            border-top-color: rgba(20, 20, 20, 0.95);
-            border-width: 10px;
-            left: 48px;
-            margin-left: -10px;
-        }
-
-        .ol-popup:before {
-            border-top-color: #444;
-            border-width: 11px;
-            left: 48px;
-            margin-left: -11px;
-        }
-
-        /* Map Filter for Dark Mode */
-        .map-dark-filter {
-            filter: grayscale(100%) invert(90%) contrast(110%);
-        }
-
-        /* Calcite Overrides for Dark Mode feeling */
-        calcite-shell {
-            --calcite-ui-foreground-1: #1a1a1a;
-            --calcite-ui-text-1: #ffffff;
-        }
-
-        /* Maximize/Minimize Styles */
-        .widget-card {
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .widget-fullscreen {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 100 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            padding: 1rem !important;
-        }
-
-        /* Custom Modal Backdrop */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
-        }
-
-        /* OpenLayers Zoom Controls Dark Theme */
-        .ol-zoom .ol-zoom-in,
-        .ol-zoom .ol-zoom-out {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border: 1px solid #444;
-        }
-
-        .ol-zoom .ol-zoom-in:hover,
-        .ol-zoom .ol-zoom-out:hover {
-            background-color: #333;
-            border-color: #666;
-        }
-
-        .ol-zoom .ol-zoom-in {
-            border-radius: 4px 4px 0 0;
-        }
-
-        .ol-zoom .ol-zoom-out {
-            border-radius: 0 0 4px 4px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script type="importmap">
 {
   "imports": {
@@ -145,7 +40,7 @@
         <!-- Header -->
         <calcite-navigation slot="header">
             <calcite-navigation-logo slot="logo" icon="graph-time-series" heading="EuroEpiTracker"
-                description="Vanilla JS Surveillance System"></calcite-navigation-logo>
+                description="Vibe Coding generatedSurveillance System"></calcite-navigation-logo>
 
             <div slot="content-end" class="flex items-center gap-4 pr-4">
                 <!-- KPI Widgets -->
@@ -156,7 +51,7 @@
                     </div>
                     <div class="text-right">
                         <p class="text-xs text-gray-400 uppercase font-semibold">Critical Events</p>
-                        <p id="kpi-critical" class="text-xl font-mono font-bold text-red-500">0</p>
+                        <p id="kpi-critical" class="text-xl font-mono font-bold text-[#860779]">0</p>
                     </div>
                 </div>
 
