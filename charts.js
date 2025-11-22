@@ -96,7 +96,7 @@ function renderPieChart(data, onFilterChange) {
     const sevCount = { [Severity.LOW]: 0, [Severity.MEDIUM]: 0, [Severity.HIGH]: 0, [Severity.CRITICAL]: 0 };
 
     data.forEach(d => {
-        if (sevCount[d.severity] !== undefined) sevCount[d.severity]++;
+        if (sevCount[d.severity] !== undefined) sevCount[d.severity] += d.cases;
     });
 
     const labels = Object.keys(sevCount);
@@ -114,7 +114,7 @@ function renderPieChart(data, onFilterChange) {
             colors: colors
         },
         hoverinfo: 'label+value',
-        hovertemplate: '<b>%{label}</b><br>Count: %{value}<extra></extra>'
+        hovertemplate: '<b>%{label}</b><br>Cases: %{value}<extra></extra>'
     };
 
     Plotly.react(containerId, [trace], {

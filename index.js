@@ -99,10 +99,12 @@ function updateDashboard() {
 
     // 5. Update KPIs
     const totalCases = finalChartData.reduce((acc, curr) => acc + curr.cases, 0);
-    const criticalEvents = finalChartData.filter(d => d.severity === Severity.CRITICAL).length;
+    const criticalCases = finalChartData
+        .filter(d => d.severity === Severity.CRITICAL)
+        .reduce((acc, curr) => acc + curr.cases, 0);
 
     kpiTotal.textContent = totalCases.toLocaleString();
-    kpiCritical.textContent = criticalEvents.toString();
+    kpiCritical.textContent = criticalCases.toLocaleString();
 
     // Sync Dropdown UI (Optional, but good for reset)
     const items = diseaseFilterGroup.querySelectorAll('calcite-dropdown-item');
