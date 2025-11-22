@@ -27,34 +27,57 @@ export function renderCharts(data, onFilterChange) {
 
 function renderBarChart(data, onFilterChange) {
     const containerId = 'chart-bar';
-    const casesByCountry = {};
+
+    // 1. Aggregate data by Country AND Severity
+    // Structure: { Country: { Low: 10, Medium: 5, ... } }
+    const countryData = {};
+    const allCountries = new Set();
 
     data.forEach(d => {
-        casesByCountry[d.country] = (casesByCountry[d.country] || 0) + d.cases;
+        if (!countryData[d.country]) {
+            countryData[d.country] = {
+                [Severity.LOW]: 0,
+                [Severity.MEDIUM]: 0,
+                [Severity.HIGH]: 0,
+                [Severity.CRITICAL]: 0,
+                total: 0
+            };
+            allCountries.add(d.country);
+        }
+        countryData[d.country][d.severity] += d.cases;
+        countryData[d.country].total += d.cases;
     });
 
-    const countries = Object.keys(casesByCountry);
-    const cases = Object.values(casesByCountry);
+    // 2. Sort Countries by Total Cases (Descending)
+    const sortedCountries = Array.from(allCountries).sort((a, b) => {
+        return countryData[b].total - countryData[a].total;
+    });
 
-    // Sort
-    const sorted = countries.map((c, i) => ({ c, v: cases[i] }))
-        .sort((a, b) => b.v - a.v);
+    // 3. Create Traces for each Severity
+    // Order: Low -> Medium -> High -> Critical (or reverse depending on preference, usually Low at bottom)
+    const severities = [Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL];
 
-    const trace = {
-        x: sorted.map(i => i.c),
-        y: sorted.map(i => i.v),
-        type: 'bar',
-        marker: {
-            color: '#C227F5',
-            line: { width: 0 }
-        },
-        hovertemplate: '<b>%{x}</b><br>Cases: %{y}<extra></extra>'
-    };
+    const traces = severities.map(severity => {
+        return {
+            x: sortedCountries,
+            y: sortedCountries.map(c => countryData[c][severity]),
+            name: severity,
+            type: 'bar',
+            marker: {
+                color: SEVERITY_COLORS[severity],
+                line: { width: 0 }
+            },
+            hovertemplate: `<b>%{x}</b><br>${severity}: %{y}<extra></extra>`
+        };
+    });
 
-    Plotly.react(containerId, [trace], {
+    // 4. Render Plot
+    Plotly.react(containerId, traces, {
         ...darkLayout,
-        title: { text: 'CASES BY COUNTRY', font: { size: 12, color: '#6b7280' }, x: 0 },
-        margin: { t: 30, b: 40, l: 40, r: 10 }
+        title: { text: 'CASES BY COUNTRY (STACKED)', font: { size: 12, color: '#6b7280' }, x: 0 },
+        barmode: 'stack', // Enable Stacking
+        margin: { t: 30, b: 40, l: 40, r: 10 },
+        showlegend: false // Keep clean as requested, or enable if needed
     }, { displayModeBar: false, responsive: true });
 
     // Add Click Listener
