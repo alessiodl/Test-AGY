@@ -6,6 +6,7 @@ let drawSource; // Source for the polygon
 let drawLayer;  // Layer for the polygon
 let overlay;
 let drawInteraction;
+let modifyInteraction; // Interaction for editing
 let onSpatialFilterCallback = null;
 let isDrawingActive = false;
 
@@ -27,6 +28,11 @@ const polygonStyle = new ol.style.Style({
     stroke: new ol.style.Stroke({
         color: '#C227F5', // Requested Violet Border
         width: 2
+    }),
+    image: new ol.style.Circle({
+        radius: 5,
+        fill: new ol.style.Fill({ color: '#C227F5' }),
+        stroke: new ol.style.Stroke({ color: '#fff', width: 1 })
     })
 });
 
@@ -153,6 +159,18 @@ export function initMap(targetId, onSpatialFilter) {
             map.getTargetElement().style.cursor = '';
         }
     });
+
+    // 7. Modify Interaction (Always active for editing)
+    modifyInteraction = new ol.interaction.Modify({ source: drawSource });
+    modifyInteraction.on('modifyend', (evt) => {
+        const features = drawSource.getFeatures();
+        const polygonFeature = features.find(f => f.getGeometry().getType() === 'Polygon');
+
+        if (polygonFeature) {
+            applyPolygonFilter(polygonFeature.getGeometry(), true);
+        }
+    });
+    map.addInteraction(modifyInteraction);
 }
 
 export function updateMapData(data) {
@@ -204,6 +222,11 @@ export function toggleDrawMode(enable) {
     }
     isDrawingActive = enable;
 
+    // Disable modify interaction while drawing to avoid conflicts
+    if (modifyInteraction) {
+        modifyInteraction.setActive(!enable);
+    }
+
     if (enable) {
         drawSource.clear();
         clearDimming();
@@ -238,6 +261,11 @@ export function toggleBufferMode(enable) {
         drawInteraction = null;
     }
     isDrawingActive = enable;
+
+    // Disable modify interaction while drawing to avoid conflicts
+    if (modifyInteraction) {
+        modifyInteraction.setActive(!enable);
+    }
 
     if (enable) {
         drawSource.clear();
@@ -299,6 +327,10 @@ export function clearSelection() {
         drawInteraction = null;
     }
     isDrawingActive = false;
+
+    if (modifyInteraction) {
+        modifyInteraction.setActive(true);
+    }
 
     if (onSpatialFilterCallback) {
         onSpatialFilterCallback(null);
